@@ -3,7 +3,7 @@
 // You can use the file to define the pin configurations of your project.
 // Some of the pin names are already defined below.
 
-#define PIN_LED_INBUILT 2
+#define PIN_LED_INBUILT 8
 
 // Analog Inputs --------
 #define PIN_A0 2
@@ -27,3 +27,6 @@
 #define PIN_SCK 8
 #define PIN_MOSI 10
 #define PIN_MISO 9
+
+#define SERVO_PIN_MOVE 2 // Pin for Servo 1
+#define SERVO_PIN_TURN 3 // Pin for Servo 2
