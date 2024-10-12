@@ -1,28 +1,28 @@
 #include <Arduino.h>
 #include "define.h"
+
 #include <ESP32Servo.h>
 
-#include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-// Servo myServo; // create servo object to control a servo
+Servo myServo;
 
-// // Possible PWM GPIO pins on the ESP32-C3:
-// // 0(used by on-board button),1-7,8(used by on-board LED),9-10,18-21
+// Possible PWM GPIO pins on the ESP32-C3:
+// 0(used by on-board button),1-7,8(used by on-board LED),9-10,18-21
 
-// int servoPin = 2;
-// int potPin = 4;
+int servoPin = 2;
 
-// int ADC_Max = 4096;
-
-// int val;
+int val;
 
 // BLE service and characteristic UUIDs
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+// ADC pin definition
+#define ADC_PIN 4 // Change this to the desired ADC pin on your ESP32-C3
 
 // Create a BLE Characteristic
 BLECharacteristic *pCharacteristic;
@@ -64,26 +64,21 @@ class MyCallbacks : public BLECharacteristicCallbacks
 
 void setup()
 {
-    delay(2000);
+    Serial.begin(115200);
 
-    //     Serial.begin(115200);
-    //     pinMode(PIN_LED_INBUILT, OUTPUT);
+    // Initialize ADC pin
+    pinMode(ADC_PIN, INPUT);
 
-    //     digitalWrite(PIN_LED_INBUILT, HIGH);
-    //     delay(1000);
-    //     digitalWrite(PIN_LED_INBUILT, LOW);
-    //     delay(1000);
-
-    //     // Allow allocation of all timers
-    //     ESP32PWM::allocateTimer(0);
-    //     ESP32PWM::allocateTimer(1);
-    //     ESP32PWM::allocateTimer(2);
-    //     ESP32PWM::allocateTimer(3);
-    //     myServo.setPeriodHertz(50);
-    //     myServo.attach(servoPin, 500, 2400);
+    // Allow allocation of all timers
+    ESP32PWM::allocateTimer(0);
+    ESP32PWM::allocateTimer(1);
+    ESP32PWM::allocateTimer(2);
+    ESP32PWM::allocateTimer(3);
+    myServo.setPeriodHertz(50);
+    myServo.attach(servoPin, 500, 2400);
 
     // Initialize BLE
-    BLEDevice::init("ESP32-C3 BLE Echo");
+    BLEDevice::init("ESP32-C3 BLE Echo with ADC");
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
 
@@ -112,8 +107,22 @@ void setup()
 
 void loop()
 {
-    // val = analogRead(potPin);
-    // val = map(val, 0, ADC_Max, 0, 180);
-    // myServo.write(val);
-    delay(200);
+    // If a device is connected, read the ADC value and send a notification
+    if (deviceConnected)
+    {
+        int adcValue = analogRead(ADC_PIN); // Read the ADC pin value
+        Serial.print("ADC Value: ");
+        Serial.println(adcValue);
+
+        val = map(adcValue, 0, 4096, 0, 180);
+        myServo.write(val);
+
+        // Convert the pot value to a string and send it as a notification
+        char adcString[10];
+        snprintf(adcString, sizeof(adcString), "%d", val);
+        pCharacteristic->setValue(adcString);
+        pCharacteristic->notify();
+    }
+
+    delay(1000); // Wait for 1 second before taking another reading
 }
