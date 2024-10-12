@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 
-#include <Servo.h>
 #include <BluetoothSerial.h>
 
 // Load the configuration details
