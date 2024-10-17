@@ -1,10 +1,22 @@
 #pragma once
 
-// You can use the file to define the pin configurations of your project.
-// Some of the pin names are already defined below.
+#define ESP32
+// #define ESP32C3
+
+#ifdef ESP32
 
 #define PIN_LED_INBUILT 2
-// #define PIN_LED_INBUILT 8
+#define SERVO_PIN_MOVE 25
+#define SERVO_PIN_TURN 26
+
+#else
+// Possible PWM GPIO pins on the ESP32-C3:
+// 0(used by on-board button),1-7,8(used by on-board LED),9-10,18-21
+#define PIN_LED_INBUILT 8
+#define SERVO_PIN_MOVE 2
+#define SERVO_PIN_TURN 3
+
+#endif
 
 // Analog Inputs --------
 #define PIN_A0 2
@@ -28,6 +40,3 @@
 #define PIN_SCK 8
 #define PIN_MOSI 10
 #define PIN_MISO 9
-
-#define SERVO_PIN_MOVE 2 // Pin for Servo 1
-#define SERVO_PIN_TURN 3 // Pin for Servo 2
