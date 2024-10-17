@@ -3,7 +3,8 @@
 // You can use the file to define the pin configurations of your project.
 // Some of the pin names are already defined below.
 
-#define PIN_LED_INBUILT 8
+#define PIN_LED_INBUILT 2
+// #define PIN_LED_INBUILT 8
 
 // Analog Inputs --------
 #define PIN_A0 2

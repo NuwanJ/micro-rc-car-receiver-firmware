@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include <BluetoothSerial.h>
+// #include <BluetoothSerial.h>
 
 // Load the configuration details
 #include "config/config.h"
