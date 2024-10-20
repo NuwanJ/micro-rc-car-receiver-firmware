@@ -32,11 +32,11 @@ void setup()
     delay(2000);
 
     Serial.begin(115200);
+    Serial.println("ESP32-C3 Receiver");
     pinMode(PIN_LED_INBUILT, OUTPUT);
 
-    digitalWrite(PIN_LED_INBUILT, HIGH);
-    delay(500);
     digitalWrite(PIN_LED_INBUILT, LOW);
+    delay(500);
 
     // Allow allocation of all timers
     ESP32PWM::allocateTimer(0);
@@ -50,11 +50,15 @@ void setup()
     Serial.println("ESP32-C3 Receiver");
     BLEDevice::init("ESP32-C3 Receiver");
 
-    Serial.println("Connecting to transmitter...");
+    digitalWrite(PIN_LED_INBUILT, HIGH);
+    delay(500);
+    digitalWrite(PIN_LED_INBUILT, LOW);
+    delay(500);
+    digitalWrite(PIN_LED_INBUILT, HIGH);
 
     // Connect to the transmitter
     pClient = BLEDevice::createClient();
-    pClient->connect(BLEAddress("3c:71:bf:58:f8:42")); // Replace with transmitter's MAC address
+    pClient->connect(BLEAddress("40:4c:ca:f9:e1:76")); // Replace with transmitter's MAC address
 
     BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
     if (pRemoteService == nullptr)
@@ -71,37 +75,34 @@ void setup()
     {
         pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
                                                   { 
-                                                    Serial.printf("Received on Channel 1: %d\n", data[0]);
+                                                    // Serial.printf("Received on Channel 1: %d\n", data[0]);
                                                     valX = data[0]; });
-    }
-    else
-    {
-        Serial.println("Failed to find characteristic 1.");
     }
 
     if (pRemoteCharacteristic2)
     {
         pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-                                                  { Serial.printf("Received on Channel 2: %d\n", data[0]);valY = data[0]; });
-    }
-    else
-    {
-        Serial.println("Failed to find characteristic 2.");
+                                                  { 
+                                                    // Serial.printf("Received on Channel 2: %d\n", data[0]);
+                                                    valY = data[0]; });
     }
 }
 
 void writeX(int val)
 {
-    if (val != 90 && !isAttachedX)
+    int threshold = abs(val - 90);
+
+    if (threshold > 4 && !isAttachedX)
     {
         myServoM.attach(SERVO_PIN_MOVE, 500, 2400);
         isAttachedX = true;
     }
 
-    if (val == 90)
+    if (threshold <= 4)
     {
         myServoM.detach();
         isAttachedX = false;
+        oldX = 90;
     }
     else if (oldX != val)
     {
@@ -113,16 +114,19 @@ void writeX(int val)
 
 void writeY(int val)
 {
-    if (val != 90 && !isAttachedY)
+    int threshold = abs(val - 90);
+
+    if (threshold > 4 && !isAttachedY)
     {
         myServoS.attach(SERVO_PIN_TURN, 500, 2400);
         isAttachedY = true;
     }
 
-    if (val == 90)
+    if (threshold <= 4)
     {
         myServoS.detach();
         isAttachedY = false;
+        oldY = 90;
     }
     else if (oldY != val)
     {
@@ -134,7 +138,7 @@ void writeY(int val)
 
 void loop()
 {
-    writeX(valX);
-    writeY(valY);
-    delay(200);
+    writeX(45 + (90 - ((valX + 15) / 2))); // motor
+    writeY(180 - (valY + 25));
+    // delay(200);
 }
