@@ -22,10 +22,56 @@ Servo myServoS;
 int val;
 
 int valX, valY;
-int oldX = 90, oldY = 90;
+int oldX = 0, oldY = 0;
 
 bool isAttachedX = false;
 bool isAttachedY = false;
+
+unsigned long updateTime;
+
+void writeX(int val)
+{
+    // int threshold = abs(val - 90);
+    val = constrain(val, 0, 180);
+
+    if (oldX != val)
+    {
+        if (!isAttachedX && val != 90)
+        {
+            myServoM.attach(SERVO_PIN_MOVE, 500, 2400);
+            isAttachedX = true;
+        }
+
+        Serial.printf("M: %d -> %d\n", oldX, val);
+
+        if (val == 90)
+        {
+            myServoM.detach();
+            isAttachedX = false;
+        }
+        else
+        {
+            myServoM.write(val);
+        }
+
+        updateTime = millis();
+        oldX = val;
+    }
+}
+
+void writeY(int val)
+{
+    int threshold = abs(val - 90);
+
+    val = constrain(val, 0, 180);
+
+    if (oldY != val)
+    {
+        Serial.printf("S: %d -> %d\n", oldY, val);
+        myServoS.write(val);
+        oldY = val;
+    }
+}
 
 void setup()
 {
@@ -47,7 +93,6 @@ void setup()
     myServoM.setPeriodHertz(50);
     myServoS.setPeriodHertz(50);
 
-    Serial.println("ESP32-C3 Receiver");
     BLEDevice::init("ESP32-C3 Receiver");
 
     digitalWrite(PIN_LED_INBUILT, HIGH);
@@ -67,6 +112,7 @@ void setup()
         pClient->disconnect();
         return;
     }
+    Serial.println("Connected");
 
     pRemoteCharacteristic1 = pRemoteService->getCharacteristic(CHAR_UUID1);
     pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
@@ -75,7 +121,7 @@ void setup()
     {
         pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
                                                   { 
-                                                    // Serial.printf("Received on Channel 1: %d\n", data[0]);
+                                                    // Serial.printf("Ch01: %d\n", data[0]);
                                                     valX = data[0]; });
     }
 
@@ -83,62 +129,24 @@ void setup()
     {
         pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
                                                   { 
-                                                    // Serial.printf("Received on Channel 2: %d\n", data[0]);
+                                                    // Serial.printf("Ch02: %d\n", data[0]);
                                                     valY = data[0]; });
     }
-}
 
-void writeX(int val)
-{
-    int threshold = abs(val - 90);
+    myServoS.attach(SERVO_PIN_TURN, 500, 2400);
 
-    if (threshold > 4 && !isAttachedX)
-    {
-        myServoM.attach(SERVO_PIN_MOVE, 500, 2400);
-        isAttachedX = true;
-    }
-
-    if (threshold <= 4)
-    {
-        myServoM.detach();
-        isAttachedX = false;
-        oldX = 90;
-    }
-    else if (oldX != val)
-    {
-        Serial.printf("M: %d -> %d\n", oldX, val);
-        myServoM.write(val);
-        oldX = val;
-    }
-}
-
-void writeY(int val)
-{
-    int threshold = abs(val - 90);
-
-    if (threshold > 4 && !isAttachedY)
-    {
-        myServoS.attach(SERVO_PIN_TURN, 500, 2400);
-        isAttachedY = true;
-    }
-
-    if (threshold <= 4)
-    {
-        myServoS.detach();
-        isAttachedY = false;
-        oldY = 90;
-    }
-    else if (oldY != val)
-    {
-        Serial.printf("S: %d -> %d\n", oldY, val);
-        myServoS.write(val);
-        oldY = val;
-    }
+    writeX(90);
+    writeY(90);
 }
 
 void loop()
 {
-    writeX(45 + (90 - ((valX + 15) / 2))); // motor
-    writeY(180 - (valY + 25));
-    // delay(200);
+    writeX(90 + (90 - valX) / 2); // motor
+    writeY(180 - (valY - 6));
+
+    // if (millis() - updateTime > 250)
+    // {
+    //     Serial.println("");
+    // }
+    delay(50);
 }
