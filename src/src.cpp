@@ -31,8 +31,6 @@ unsigned long updateTime;
 
 void writeX(int valX)
 {
-
-    // int threshold = abs(val - 90);
     int val = constrain(valX, 0, 180);
 
     // This is a threshold
@@ -103,17 +101,12 @@ void connectToBLE()
         pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
 
         if (pRemoteCharacteristic1)
-        {
             pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-                                                      { valX = data[0];
-        updateTime = millis(); });
-        }
+                                                      {  valX = data[0];updateTime = millis(); });
 
         if (pRemoteCharacteristic2)
-        {
             pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
                                                       { valY = data[0]; });
-        }
     }
     else
     {
@@ -159,12 +152,10 @@ void setup()
 
 void loop()
 {
-    // writeX(90 + (90 - valX) / 2); // motor
-    // writeY(180 - (valY - 6));
-
     if (!pClient->isConnected())
     {
         writeX(90);
+        writeY(90);
         Serial.println("Connection lost. Attempting to reconnect...");
         connectToBLE();
     }
@@ -175,9 +166,7 @@ void loop()
         writeY(180 - (valY - 6));
 
         if (millis() - updateTime > 75)
-        {
             writeX(90);
-        }
     }
     delay(50);
 }
