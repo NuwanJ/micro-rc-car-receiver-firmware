@@ -21,18 +21,28 @@ Servo myServoS;
 
 int val;
 
-int valX, valY;
-int oldX = 0, oldY = 0;
+int valX = 90, valY = 90;
+int oldX = 90, oldY = 00;
 
 bool isAttachedX = false;
 bool isAttachedY = false;
 
 unsigned long updateTime;
 
-void writeX(int val)
+void writeX(int valX)
 {
+
     // int threshold = abs(val - 90);
-    val = constrain(val, 0, 180);
+    int val = constrain(valX, 0, 180);
+
+    // This is a threshold
+    if (val > 85 && val < 95)
+    {
+        val = 90;
+        myServoM.detach();
+        isAttachedX = false;
+        return;
+    }
 
     if (oldX != val)
     {
@@ -54,7 +64,6 @@ void writeX(int val)
             myServoM.write(val);
         }
 
-        updateTime = millis();
         oldX = val;
     }
 }
@@ -70,6 +79,7 @@ void writeY(int val)
         Serial.printf("S: %d -> %d\n", oldY, val);
         myServoS.write(val);
         oldY = val;
+        updateTime = millis();
     }
 }
 
@@ -95,7 +105,8 @@ void connectToBLE()
         if (pRemoteCharacteristic1)
         {
             pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-                                                      { valX = data[0]; });
+                                                      { valX = data[0];
+        updateTime = millis(); });
         }
 
         if (pRemoteCharacteristic2)
@@ -138,37 +149,6 @@ void setup()
     delay(500);
     digitalWrite(PIN_LED_INBUILT, HIGH);
 
-    // Connect to the transmitter
-    // pClient = BLEDevice::createClient();
-    // pClient->connect(BLEAddress("40:4c:ca:f9:e1:76")); // Replace with transmitter's MAC address
-
-    // BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
-    // if (pRemoteService == nullptr)
-    // {
-    //     Serial.println("Failed to find service.");
-    //     pClient->disconnect();
-    //     return;
-    // }
-    // Serial.println("Connected");
-
-    // pRemoteCharacteristic1 = pRemoteService->getCharacteristic(CHAR_UUID1);
-    // pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
-
-    // if (pRemoteCharacteristic1)
-    // {
-    //     pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-    //                                               {
-    //                                                 // Serial.printf("Ch01: %d\n", data[0]);
-    //                                                 valX = data[0]; });
-    // }
-
-    // if (pRemoteCharacteristic2)
-    // {
-    //     pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-    //                                               {
-    //                                                 // Serial.printf("Ch02: %d\n", data[0]);
-    //                                                 valY = data[0]; });
-    // }
     connectToBLE();
 
     myServoS.attach(SERVO_PIN_TURN, 500, 2400);
@@ -182,11 +162,6 @@ void loop()
     // writeX(90 + (90 - valX) / 2); // motor
     // writeY(180 - (valY - 6));
 
-    // // if (millis() - updateTime > 250)
-    // // {
-    // //     Serial.println("");
-    // // }
-
     if (!pClient->isConnected())
     {
         writeX(90);
@@ -198,7 +173,11 @@ void loop()
     {
         writeX(90 + (90 - valX) / 2); // motor
         writeY(180 - (valY - 6));
-    }
 
+        if (millis() - updateTime > 75)
+        {
+            writeX(90);
+        }
+    }
     delay(50);
 }
