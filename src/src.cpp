@@ -73,6 +73,43 @@ void writeY(int val)
     }
 }
 
+void connectToBLE()
+{
+    pClient = BLEDevice::createClient();
+    Serial.println("Connecting to BLE device...");
+    if (pClient->connect(BLEAddress("40:4c:ca:f9:e1:76")))
+    {
+        Serial.println("Connected");
+
+        BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
+        if (pRemoteService == nullptr)
+        {
+            Serial.println("Failed to find service.");
+            pClient->disconnect();
+            return;
+        }
+
+        pRemoteCharacteristic1 = pRemoteService->getCharacteristic(CHAR_UUID1);
+        pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
+
+        if (pRemoteCharacteristic1)
+        {
+            pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
+                                                      { valX = data[0]; });
+        }
+
+        if (pRemoteCharacteristic2)
+        {
+            pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
+                                                      { valY = data[0]; });
+        }
+    }
+    else
+    {
+        Serial.println("Failed to connect. Will retry...");
+    }
+}
+
 void setup()
 {
     delay(2000);
@@ -102,36 +139,37 @@ void setup()
     digitalWrite(PIN_LED_INBUILT, HIGH);
 
     // Connect to the transmitter
-    pClient = BLEDevice::createClient();
-    pClient->connect(BLEAddress("40:4c:ca:f9:e1:76")); // Replace with transmitter's MAC address
+    // pClient = BLEDevice::createClient();
+    // pClient->connect(BLEAddress("40:4c:ca:f9:e1:76")); // Replace with transmitter's MAC address
 
-    BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
-    if (pRemoteService == nullptr)
-    {
-        Serial.println("Failed to find service.");
-        pClient->disconnect();
-        return;
-    }
-    Serial.println("Connected");
+    // BLERemoteService *pRemoteService = pClient->getService(SERVICE_UUID);
+    // if (pRemoteService == nullptr)
+    // {
+    //     Serial.println("Failed to find service.");
+    //     pClient->disconnect();
+    //     return;
+    // }
+    // Serial.println("Connected");
 
-    pRemoteCharacteristic1 = pRemoteService->getCharacteristic(CHAR_UUID1);
-    pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
+    // pRemoteCharacteristic1 = pRemoteService->getCharacteristic(CHAR_UUID1);
+    // pRemoteCharacteristic2 = pRemoteService->getCharacteristic(CHAR_UUID2);
 
-    if (pRemoteCharacteristic1)
-    {
-        pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-                                                  { 
-                                                    // Serial.printf("Ch01: %d\n", data[0]);
-                                                    valX = data[0]; });
-    }
+    // if (pRemoteCharacteristic1)
+    // {
+    //     pRemoteCharacteristic1->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
+    //                                               {
+    //                                                 // Serial.printf("Ch01: %d\n", data[0]);
+    //                                                 valX = data[0]; });
+    // }
 
-    if (pRemoteCharacteristic2)
-    {
-        pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
-                                                  { 
-                                                    // Serial.printf("Ch02: %d\n", data[0]);
-                                                    valY = data[0]; });
-    }
+    // if (pRemoteCharacteristic2)
+    // {
+    //     pRemoteCharacteristic2->registerForNotify([](BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *data, size_t length, bool isNotify)
+    //                                               {
+    //                                                 // Serial.printf("Ch02: %d\n", data[0]);
+    //                                                 valY = data[0]; });
+    // }
+    connectToBLE();
 
     myServoS.attach(SERVO_PIN_TURN, 500, 2400);
 
@@ -141,12 +179,26 @@ void setup()
 
 void loop()
 {
-    writeX(90 + (90 - valX) / 2); // motor
-    writeY(180 - (valY - 6));
+    // writeX(90 + (90 - valX) / 2); // motor
+    // writeY(180 - (valY - 6));
 
-    // if (millis() - updateTime > 250)
-    // {
-    //     Serial.println("");
-    // }
+    // // if (millis() - updateTime > 250)
+    // // {
+    // //     Serial.println("");
+    // // }
+
+    if (!pClient->isConnected())
+    {
+        writeX(90);
+        Serial.println("Connection lost. Attempting to reconnect...");
+        connectToBLE();
+    }
+
+    if (pClient->isConnected())
+    {
+        writeX(90 + (90 - valX) / 2); // motor
+        writeY(180 - (valY - 6));
+    }
+
     delay(50);
 }
